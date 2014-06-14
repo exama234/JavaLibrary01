@@ -84,9 +84,12 @@ public class ByteUnitString implements Cloneable {
 		return isProperIndex(target, byteIndex, Charset.defaultCharset());
 	}
 	/**
+	 * きりがいいインデックスかを判定する。<br/>
+	 * マルチバイト文字を含む文字列のインデックスを指定した場合、そのインデックスが
+	 * マルチバイト文字の１バイト目以外を差していないかを返す。
 	 * @param target 対象となる文字列。
 	 * @param byteIndex 文字列中のインデックス。
-	 * @param charset
+	 * @param charset キャラクタセット。
 	 * @return 引数インデックスのきりがいいかの真偽値。（true：きりがいい／false：悪い）
 	 * @throws IndexOutOfBoundsException インデックス範囲外の際に発生する例外。
 	 */
@@ -147,46 +150,10 @@ public class ByteUnitString implements Cloneable {
 		return false;
 	}
 	
-	public static int byteToCharIndex(String str, int beginByteIndex) {
-		return byteToCharIndex(str, beginByteIndex, Charset.defaultCharset());
-	}
-	public static int byteToCharIndex(String str, int beginByteIndex, Charset charset) {
-		if (beginByteIndex < 0) {
-			return -1;
-		}
-		
-		String tmp = null;
-		int index1 = 0;
-		int index2 = str.length();
-		int currentIndex = -1;
-		while (true) {
-			currentIndex = (index1 + index2) / 2;
-			tmp = str.substring(0, currentIndex);
-			int byteLen = tmp.getBytes(charset).length;
-			if (beginByteIndex == byteLen) {
-				return currentIndex;
-			}
-			if (byteLen < beginByteIndex) {
-				index1 = currentIndex;
-			}
-			if (beginByteIndex < byteLen) {
-				index2 = currentIndex;
-			}
-			
-			// index1の次インデックスがindex2以上の場合。
-			if (index1 + 1 >= index2) {
-				currentIndex = (index1 + index2) / 2;
-				break;
-			}
-		}
-		
-		return currentIndex;
-	}
-	
 	/**
 	 * インデックスが文字列の範囲外かを判定する。<br/>
-	 * @param relativeIndex
-	 * @return
+	 * @param relativeIndex （相対）インデックス。
+	 * @return 引数インデックスが範囲外かの真偽値。（true：範囲外／false：範囲内）
 	 */
 	public boolean isIndexOutOfBounds(int relativeIndex) {
 		if (relativeIndex < 0) {
@@ -202,12 +169,26 @@ public class ByteUnitString implements Cloneable {
 		return false;
 	}
 	
+	/**
+	 * 指定バイトインデックスから文字列を切り出す。<br/>
+	 * 切り出し後の文字列について、指定インデックスのバイトを含む。<br/>
+	 * @param relativeStartIndex 切り出しの開始バイトインデックス。
+	 * @return 文字列切り出し後のオブジェクト。
+	 */
 	public ByteUnitString substring(int relativeStartIndex) throws IndexOutOfBoundsException {
 		// 相対的な終了インデックス（＝バイト長）を取得する。
 		int relativeEndIndex = this.length;
 		return substring(relativeStartIndex, relativeEndIndex);
 	}
 	
+	/**
+	 * 指定バイトインデックスから文字列を切り出す。<br/>
+	 * 切り出し後の文字列について、指定インデックスの開始バイトを含むが、
+	 * 指定インデックスの終了バイトは含まない。
+	 * @param relativeStartIndex 切り出しの開始バイトインデックス。
+	 * @param relativeEndIndex 切り出しの終了バイトインデックス。
+	 * @return 文字列切り出し後のオブジェクト。
+	 */
 	public ByteUnitString substring(int relativeStartIndex, int relativeEndIndex) throws IndexOutOfBoundsException {
 		// 引数のrelativeStartIndexは相対的なインデックス。
 		int byteLength = relativeEndIndex - relativeStartIndex;
@@ -222,6 +203,12 @@ public class ByteUnitString implements Cloneable {
 		newObj.refreshValue();
 		return newObj;
 	}
+	
+	/**
+	 * 文字列の開始インデックスを設定する。<br/>
+	 * @param relativeIndex 設定する開始バイトインデックス。
+	 * @return 設定後のオブジェクト。
+	 */
 	private ByteUnitString setStartIndex(int relativeIndex) throws IndexOutOfBoundsException {
 		if (isIndexOutOfBounds(relativeIndex)) {
 			throw new IndexOutOfBoundsException();
@@ -231,6 +218,12 @@ public class ByteUnitString implements Cloneable {
 		this.refreshValue();
 		return this;
 	}
+	
+	/**
+	 * 文字列のバイト長を設定する。<br/>
+	 * @param byteLength 設定するバイト長。
+	 * @return 設定後のオブジェクト。
+	 */
 	private ByteUnitString setLength(int byteLength) throws IndexOutOfBoundsException {
 		if (byteLength == 0) {
 			// ゼロの場合だけ、インデックス計算がずれるので固定設定。
@@ -250,10 +243,20 @@ public class ByteUnitString implements Cloneable {
 		return this;
 	}
 	
+	/**
+	 * 現在の文字列の終了インデックスを取得する。<br>
+	 * @return 現在の文字列の終了インデックス。 
+	 */
 	public int getEndIndex() {
 		int absoluteEndIndex = this.startIndex + this.length;
 		return absoluteEndIndex;
 	}
+	
+	/**
+	 * 指定インデックスの次のきりのいいインデックスを取得する。
+	 * @param relativeIndex 相対インデックス。
+	 * @return 次のきりのいいインデックス。
+	 */
 	public int nextProperIndex(int relativeIndex) {
 		if (isIndexOutOfBounds(relativeIndex)) {
 			throw new IndexOutOfBoundsException();
@@ -273,6 +276,12 @@ public class ByteUnitString implements Cloneable {
 		// index以降できりのいい文字のインデックスは無し。
 		return -1;
 	}
+	
+	/**
+	 * 指定インデックスの前のきりのいいインデックスを取得する。
+	 * @param relativeIndex 相対インデックス。
+	 * @return 前のきりのいいインデックス。
+	 */
 	public int previousProperIndex(int relativeIndex) {
 		if (isIndexOutOfBounds(relativeIndex)) {
 			throw new IndexOutOfBoundsException();
@@ -291,9 +300,12 @@ public class ByteUnitString implements Cloneable {
 		// index以降できりのいい文字のインデックスは無し。
 		return -1;
 	}
+	
+	/**
+	 * StartIndexがきりのいいインデックスを差しているかの真偽値を返す。
+	 * @return きりのいいインデックスを差しているかの真偽値。
+	 */
 	public boolean isProperStartIndex() {
-		// StartIndexがきりのいい文字を差しているか。
-		
 		// origin内の「StartIndex」がきりがいいのか判定。 
 		if (isProperIndex(this.startIndex)) {
 			// きりがいい。
@@ -303,6 +315,11 @@ public class ByteUnitString implements Cloneable {
 		// きりが悪い。
 		return false;
 	}
+	
+	/**
+	 * EndIndexがきりのいいインデックスを差しているかの真偽値を返す。
+	 * @return きりのいいインデックスを差しているかの真偽値。
+	 */
 	public boolean isProperEndIndex() {
 		// このメソッドは要テスト。
 		// 最終文字がきりのいい文字か。
@@ -322,12 +339,21 @@ public class ByteUnitString implements Cloneable {
 		// きりが悪い。
 		return false;
 	}
+	
+	/**
+	 * 半端なバイトをトリムする。<br/>
+	 * @return 半端バイトのトリム処理後のオブジェクト。
+	 */
 	public ByteUnitString trimOddByte() {
 		trimLeftOddByte();
 		trimRightOddByte();
-		
 		return this;
 	}
+	
+	/**
+	 * 半端なバイトを左トリムする。<br/>
+	 * @return 左トリム処理後のオブジェクト。
+	 */
 	public ByteUnitString trimLeftOddByte() {
 		if (this.isProperStartIndex()) {
 			// トリムの必要なし。
@@ -350,6 +376,11 @@ public class ByteUnitString implements Cloneable {
 		this.refreshValue();
 		return this;
 	}
+	
+	/**
+	 * 半端なバイトを右トリムする。<br/>
+	 * @return 右トリム処理後のオブジェクト。
+	 */
 	public ByteUnitString trimRightOddByte() {
 		if (this.isProperEndIndex()) {
 			// トリムの必要なし。
@@ -375,20 +406,28 @@ public class ByteUnitString implements Cloneable {
 				return this;
 			}
 			
-			//     Start（絶）なら空白を返す。
+			// Start（絶）なら空白を返す。
 		}
 		this.setLength(0);
 		this.refreshValue();
 		return this;
 	}
 	
+	/**
+	 * バイト長を返す。<br/>
+	 * @return 文字列のバイト長。
+	 */
 	public int getByteLength() {
-		this.getString();
+		this.refreshValue();
 		return this.length;
 	}
 	
+	/**
+	 * 文字数を返す。<br/>
+	 * @return 文字列の文字数。
+	 */
 	public int getCharLength() {
-		this.getString();
+		this.refreshValue();
 		return this.value.length();
 	}
 	
@@ -406,9 +445,18 @@ public class ByteUnitString implements Cloneable {
 		this.refreshValue();
 		return this.value;
 	}
+	
+	/**
+	 * 現在の文字列を保持する変数を更新する。
+	 */
 	private void refreshValue() {
 		this.value = this.getString();
 	}
+	
+	/**
+	 * 現在の文字列を取得する。
+	 * @return 現在の文字列。
+	 */
 	private String getString() {
 		int copyLength = this.length;
 		byte[] srcData = this.original.getBytes(this.charset);
@@ -418,6 +466,11 @@ public class ByteUnitString implements Cloneable {
 		String string = new String(destData, this.charset);
 		return string;
 	}
+	
+	/**
+	 * substring等で切り出しされた文字列を初期時の状態に戻す。<br/>
+	 * @return 初期化したときの状態のオブジェクト。
+	 */
 	public ByteUnitString restore() {
 		this.startIndex = 0;
 		this.length = this.original.getBytes(this.charset).length;
